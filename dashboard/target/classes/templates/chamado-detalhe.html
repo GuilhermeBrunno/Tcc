@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout :: html(content=~{::content}, titulo='Chamado #' + ${chamado.id})}">
+
+<body>
+
+<div th:fragment="content">
+
+    <h2 class="mb-3">
+        Chamado #<span th:text="${chamado.id}">0</span>
+
+        <span th:if="${atrasado}"
+              class="badge bg-danger ms-2">
+            ATRASADO +30min
+        </span>
+    </h2>
+
+    <div class="row">
+
+        <div class="col-md-8">
+
+            <div class="card card-status mb-3">
+
+                <div class="card-body">
+
+                    <h4 th:text="${chamado.titulo}">Título</h4>
+
+                    <p class="text-muted"
+                       th:text="${chamado.descricao}">
+                        Descrição
+                    </p>
+
+                    <p class="mb-2">
+                        <strong>Máquina:</strong>
+                        <span th:text="${chamado.maquina.nome}">Máq</span><br>
+
+                        <strong>Setor:</strong>
+                        <span th:text="${chamado.maquina.setor.nome}">Setor</span><br>
+
+                        <strong>Motivo:</strong>
+
+                        <span th:if="${chamado.motivoFalha}"
+                              class="badge bg-secondary"
+                              th:text="${chamado.motivoFalha}">
+                        </span>
+
+                        <span th:unless="${chamado.motivoFalha}"
+                              class="text-muted">
+                            Não informado
+                        </span>
+                    </p>
+
+                    <p>
+                        <strong>Status:</strong>
+
+                        <span class="badge"
+                              th:classappend="${chamado.status.name() == 'ABERTO'} ? 'bg-danger' :
+                                              (${chamado.status.name() == 'EM_ANDAMENTO'} ? 'bg-warning text-dark' :
+                                              (${chamado.status.name() == 'PAUSADO'} ? 'bg-info' :
+                                              (${chamado.status.name() == 'ESCALADO'} ? 'bg-purple' :
+                                              'bg-success')))"
+                              th:style="${chamado.status.name() == 'ESCALADO'} ? 'background-color: #6f42c1;' : ''"
+                              th:text="${chamado.status}">
+                            STATUS
+                        </span>
+                    </p>
+
+                    <p class="mb-0">
+                        <strong>Técnico:</strong>
+                        <span th:text="${chamado.tecnico?.nome} ?: 'Não atribuído'">
+                            Tec
+                        </span>
+                        <br>
+
+                        <strong>Especialista:</strong>
+                        <span th:text="${chamado.especialista?.nome} ?: 'Não atribuído'">
+                            Esp
+                        </span>
+                    </p>
+                    <div th:if="${chamado.caminhoFoto}" class="mt-3">
+                        <strong>📷 Foto:</strong><br>
+                    
+                        <img th:src="'/uploads/' + ${#strings.substringAfter(chamado.caminhoFoto, '\\')}"
+                             class="img-fluid img-thumbnail"
+                             style="max-height: 300px"
+                             alt="Foto do chamado">
+                    </div>
+                    
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="row mb-3">
+
+    <div class="col-md-6">
+
+        <div class="card card-status border-warning">
+
+            <div class="card-header bg-warning text-dark">
+                <strong>⏱ Tempo de Reparo</strong>
+
+                <span th:if="${atrasado}"
+                      class="badge bg-danger ms-1">
+                    +30min
+                </span>
+            </div>
+
+            <div class="card-body text-center">
+
+                <h3 class="cronometro"
+                    th:attr="data-inicio-reparo=${chamado.inicioReparo},
+                             data-acumulado=${chamado.tempoReparoAcumulado},
+                             data-pausado=${chamado.status.name() == 'PAUSADO'
+                                           || chamado.status.name() == 'ESCALADO'}">
+                    --:--:--
+                </h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-6">
+
+        <div class="card card-status border-info">
+
+            <div class="card-header bg-info text-white">
+                <strong>🚶 Tempo de Locomoção</strong>
+            </div>
+
+            <div class="card-body text-center">
+
+                <h3 th:text="${chamado.tempoLocomocaoSegundos != null
+                             ? chamado.tempoLocomocaoSegundos / 60 + ' min'
+                             : 'Não iniciado'}">
+                </h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="card card-status mb-3"
+     th:if="${not #lists.isEmpty(notificacoes)}">
+
+    <div class="card-header bg-dark text-white">
+        <strong>Notificações do Chamado</strong>
+    </div>
+
+    <div class="card-body">
+
+        <div th:each="n : ${notificacoes}"
+             class="alert mb-2"
+             th:classappend="${n.tipo.name() == 'ALERTA_30MIN'} ? 'alert-danger' :
+                             (${n.tipo.name() == 'ESCALACAO'} ? 'alert-warning' : 'alert-success')">
+
+            <small>
+                <strong th:text="${#temporals.format(n.dataEnvio, 'dd/MM HH:mm')}">
+                    data
+                </strong>
+
+                &nbsp;
+
+                <span th:text="${n.tipo.name() == 'ALERTA_30MIN'} ? '[ALERTA]' :
+                               (${n.tipo.name() == 'ESCALACAO'} ? '[ESCALAÇÃO]' : '[CONCLUÍDO]')">
+                </span>
+
+                <span th:text="${n.mensagem}">
+                    msg
+                </span>
+            </small>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="col-md-4">
+    <div class="card card-status">
+        <div class="card-header bg-dark text-white">
+            <strong>Ações</strong>
+        </div>
+
+        <div class="card-body">
+
+            <!-- ABERTO: atribuir técnico -->
+            <div th:if="${chamado.status.name() == 'ABERTO'}">
+                <form th:action="@{/chamados/{id}/assumir(id=${chamado.id})}" method="post">
+                    <label class="form-label">Técnico:</label>
+                    <select name="tecnicoId" class="form-select mb-2" required>
+                        <option value="">Selecione...</option>
+                        <option th:each="t : ${tecnicos}"
+                                th:value="${t.id}"
+                                th:text="${t.nome}">
+                            Técnico
+                        </option>
+                    </select>
+
+                    <button class="btn btn-warning w-100">
+                        Assumir Chamado
+                    </button>
+                </form>
+            </div>
+
+            <!-- EM ANDAMENTO: pausar / concluir / locomoção / escalar -->
+            <div th:if="${chamado.status.name() == 'EM_ANDAMENTO'}">
+
+                <form th:action="@{/chamados/{id}/pausar(id=${chamado.id})}"
+                      method="post"
+                      class="mb-2">
+                    <button class="btn btn-info w-100">
+                        Pausar Reparo
+                    </button>
+                </form>
+
+                <form th:action="@{/chamados/{id}/concluir(id=${chamado.id})}"
+                      method="post"
+                      class="mb-2">
+                    <button class="btn btn-success w-100">
+                        Concluir
+                    </button>
+                </form>
+
+                <hr>
+
+                <form th:action="@{/chamados/{id}/iniciar-locomocao(id=${chamado.id})}"
+                      method="post"
+                      class="mb-2">
+                    <button class="btn btn-outline-info w-100">
+                        Iniciar Locomoção
+                    </button>
+                </form>
+
+                <form th:action="@{/chamados/{id}/finalizar-locomocao(id=${chamado.id})}"
+                      method="post"
+                      class="mb-2">
+                    <button class="btn btn-outline-info w-100">
+                        Finalizar Locomoção
+                    </button>
+                </form>
+
+                <hr th:if="${atrasado}">
+
+                <form th:if="${atrasado}"
+                      th:action="@{/chamados/{id}/escalar(id=${chamado.id})}"
+                      method="post">
+
+                    <label class="form-label">
+                        Escalar para Especialista:
+                    </label>
+
+                    <select name="especialistaId"
+                            class="form-select mb-2"
+                            required>
+                        <option value="">Selecione...</option>
+                        <option th:each="e : ${especialistas}"
+                                th:value="${e.id}"
+                                th:text="${e.nome}">
+                            Esp
+                        </option>
+                    </select>
+
+                    <button class="btn w-100"
+                            style="background-color: #6f42c1; color: white;">
+                        Escalar
+                    </button>
+                </form>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- PAUSADO: retomar ou escalonar -->
+<div th:if="${chamado.status.name() == 'PAUSADO'}">
+
+    <form th:action="@{/chamados/{id}/retomar(id=${chamado.id})}"
+          method="post"
+          class="mb-2">
+        <button class="btn btn-warning w-100">
+            Retomar Reparo
+        </button>
+    </form>
+
+    <hr>
+
+    <form th:action="@{/chamados/{id}/escalar(id=${chamado.id})}"
+          method="post">
+
+        <label class="form-label">
+            Escalar para Especialista:
+        </label>
+
+        <select name="especialistaId"
+                class="form-select mb-2"
+                required>
+            <option value="">Selecione...</option>
+            <option th:each="e : ${especialistas}"
+                    th:value="${e.id}"
+                    th:text="${e.nome}">
+                Esp
+            </option>
+        </select>
+
+        <button class="btn w-100"
+                style="background-color: #6f42c1; color: white;">
+            Escalar
+        </button>
+    </form>
+</div>
+
+<!-- ESCALADO: aguardando especialista -->
+<div th:if="${chamado.status.name() == 'ESCALADO'}">
+    <p class="text-muted small">
+        Aguardando <strong th:text="${chamado.especialista?.nome}">Esp</strong>
+    </p>
+
+    <form th:action="@{/chamados/{id}/retomar-especialista(id=${chamado.id})}"
+          method="post"
+          class="mb-2">
+        <button class="btn btn-warning w-100">
+            Retomar (Especialista)
+        </button>
+    </form>
+
+    <form th:action="@{/chamados/{id}/concluir(id=${chamado.id})}"
+          method="post"
+          class="mb-2">
+        <button class="btn btn-success w-100">
+            Concluir (Especialista)
+        </button>
+    </form>
+</div>
+
+<!-- CONCLUÍDO: resumo final -->
+<div th:if="${chamado.status.name() == 'CONCLUIDO'}">
+    <p class="text-success">Reparo concluído</p>
+
+    <p>
+        <strong>Tempo total:</strong>
+        <span th:text="${chamado.tempoReparoAcumulado / 60 + ' min'}">
+            0
+        </span>
+    </p>
+
+    <p>
+        <strong>Locomoção:</strong>
+        <span th:text="${chamado.tempoLocomocaoSegundos != null
+                ? chamado.tempoLocomocaoSegundos / 60 + ' min'
+                : 'N/A'}">
+        </span>
+    </p>
+</div>
+
+</div>
+</div>
+
+<a href="/dashboard" class="btn btn-secondary mt-3">Voltar</a>
+
+<script>
+    function formatarHMS(totalSec) {
+        var h = Math.floor(totalSec / 3600);
+        var m = Math.floor((totalSec % 3600) / 60);
+        var s = totalSec % 60;
+
+        return String(h).padStart(2, '0') + ':' +
+               String(m).padStart(2, '0') + ':' +
+               String(s).padStart(2, '0');
+    }
+
+    function atualizarCronometro(el) {
+        var inicio = el.getAttribute('data-inicio-reparo');
+        var acumulado = parseInt(el.getAttribute('data-acumulado')) || 0;
+        var pausado = el.getAttribute('data-pausado') === 'true';
+
+        if (!inicio || inicio === 'null') {
+            el.textContent = "00:00:00";
+            return;
+        }
+
+        if (pausado) {
+            el.textContent = formatarHMS(acumulado);
+            el.classList.toggle('atrasado', acumulado > 1800);
+            return;
+        }
+
+        var diffSec = Math.floor((new Date() - new Date(inicio)) / 1000);
+        var totalSec = acumulado + diffSec;
+
+        el.textContent = formatarHMS(totalSec);
+        el.classList.toggle('atrasado', totalSec > 1800);
+    }
+
+    document.querySelectorAll('.cronometro').forEach(function (el) {
+        atualizarCronometro(el);
+        setInterval(function () {
+            atualizarCronometro(el);
+        }, 1000);
+    });
+</script>
+</body>
+</html>
