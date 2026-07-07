@@ -32,4 +32,27 @@ VALUES ('Esteira-02', 'EM-500', 'SN-2002',
 MERGE INTO maquinas (nome, modelo, numero_serie, setor_id) KEY(nome)
 VALUES ('Robo-Pintura', 'RP-100', 'SN-3001',
     (SELECT id FROM setores WHERE nome = 'Pintura'));
-    
+
+MERGE INTO usuarios (login, senha, nome, tipo, setor_id) KEY(login)
+VALUES ('joao', '123', 'Joao Operador', 'OPERADOR', (SELECT id FROM setores WHERE nome = 'Injecao'));
+
+MERGE INTO usuarios (login, senha, nome, tipo, setor_id) KEY(login)
+VALUES ('maria', '123', 'Maria Tecnica', 'TECNICO', (SELECT id FROM setores WHERE nome = 'Injecao'));
+
+MERGE INTO usuarios (login, senha, nome, tipo, setor_id) KEY(login)
+VALUES ('pedro', '123', 'Pedro Lider', 'LIDER', (SELECT id FROM setores WHERE nome = 'Injecao'));
+
+MERGE INTO usuarios (login, senha, nome, tipo, setor_id) KEY(login)
+VALUES ('carlos', '123', 'Carlos Tecnico', 'TECNICO', (SELECT id FROM setores WHERE nome = 'Montagem'));
+
+MERGE INTO usuarios (login, senha, nome, tipo, setor_id) KEY(login)
+VALUES ('lucia', '123', 'Lucia Lider', 'LIDER', (SELECT id FROM setores WHERE nome = 'Montagem'));
+
+MERGE INTO usuarios (login, senha, nome, tipo, setor_id) KEY(login)
+VALUES ('roberto', '123', 'Roberto Especialista', 'ESPECIALISTA', NULL);
+
+MERGE INTO usuarios (login, senha, nome, tipo, setor_id) KEY(login)
+VALUES ('fernanda', '123', 'Fernanda Especialista', 'ESPECIALISTA', NULL);
+
+MERGE INTO usuarios (login, senha, nome, tipo, setor_id) KEY(login)
+VALUES ('ana', '123', 'Ana Visualizadora', 'VISUALIZADOR', NULL);
