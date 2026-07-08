@@ -9,10 +9,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "maquinas")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class Maquina {
 
     @Id
@@ -28,6 +25,15 @@ public class Maquina {
 
     @Column(length = 50)
     private String numeroSerie;
+
+    public enum StatusMaquina {
+        OPERANDO, PARADA, MANUTENCAO
+    }
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private StatusMaquina status = StatusMaquina.OPERANDO;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "setor_id", nullable = false)
