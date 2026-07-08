@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout :: html(content=~{::content}, titulo='Chamados')}">
+
+<body>
+
+<div th:fragment="content">
+
+    <h2 class="mb-4">Chamados</h2>
+
+    <div class="mb-3">
+        <a href="/chamados" class="btn btn-outline-secondary">Todos</a>
+        <a href="/chamados?status=ABERTO" class="btn btn-sm btn-outline-danger">Abertos</a>
+        <a href="/chamados?status=EM_ANDAMENTO" class="btn btn-sm btn-outline-warning">Em Andamento</a>
+        <a href="/chamados?status=PAUSADO" class="btn btn-sm btn-outline-info">Pausados</a>
+        <a href="/chamados?status=ESCALADO" class="btn btn-sm"
+           style="color: #6f42c1; border-color: #6f42c1;">Escalados</a>
+        <a href="/chamados?status=CONCLUIDO" class="btn btn-sm btn-outline-success">Concluídos</a>
+    </div>
+
+    <table class="table table-striped table-hover"
+           th:if="${not #lists.isEmpty(chamados)}">
+
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Título</th>
+                <th>Máquina</th>
+                <th>Setor</th>
+                <th>Motivo</th>
+                <th>Status</th>
+                <th>Abertura</th>
+                <th>Técnico</th>
+                <th>Alerta</th>
+                <th></th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr th:each="c : ${chamados}">
+                <td th:text="${c.id}">1</td>
+                <td th:text="${c.titulo}">Título</td>
+                <td th:text="${c.maquina.nome}">Máq</td>
+                <td th:text="${c.maquina.setor.nome}">Setor</td>
+
+                <td>
+                    <span th:text="${c.motivoFalha}"
+                          class="badge bg-secondary"></span>
+                </td>
+
+                <td>
+                    <span class="badge"
+                          th:classappend="${c.status.name() == 'ABERTO'} ? 'bg-danger' :
+                                          (${c.status.name() == 'EM_ANDAMENTO'} ? 'bg-warning text-dark' :
+                                          (${c.status.name() == 'PAUSADO'} ? 'bg-info' :
+                                          (${c.status.name() == 'ESCALADO'} ? 'bg-purple' : 'bg-success')))"
+                          th:style="${c.status.name() == 'ESCALADO'} ? 'background-color: #6f42c1;' : ''"
+                          th:text="${c.status}">
+                    STATUS
+                    </span>
+                </td>
+
+                <td th:text="${#temporals.format(c.dataAbertura, 'dd/MM/yyyy HH:mm')}">
+                    data
+                </td>
+
+                <td th:text="${c.tecnico?.nome}">
+                    Tec
+                </td>
+
+                <td>
+                    <span th:if="${c.tempoReparoSegundos > 1800
+                               and (c.status.name() == 'EM_ANDAMENTO'
+                               or c.status.name() == 'ESCALADO')}"
+                          class="badge bg-danger">
+                        ⚠
+                    </span>
+                </td>
+
+                <td>
+                    <a th:href="@{/chamados/{id}(id=${c.id})}"
+                       class="btn btn-sm btn-outline-primary">
+                        Detalhes
+                    </a>
+                </td>
+            </tr>
+        </tbody>
+
+    </table>
+
+    <p th:if="${#lists.isEmpty(chamados)}" class="text-muted">
+        Nenhum chamado.
+        <a href="/chamados/novo">Abrir um novo</a>.
+    </p>
+
+</div>
+
+</body>
+</html>

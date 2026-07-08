@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout :: html(content=~{::content}, titulo='Dashboard')}">
+
+<head>
+    <meta http-equiv="refresh" content="30">
+</head>
+
+<body>
+
+<div th:fragment="content">
+
+    <h2 class="mb-4">Dashboard de Manutencao</h2>
+
+    <div class="row mb-3">
+        <div class="col-md-8">
+
+            <form class="row g-2" method="get" th:action="@{/dashboard}">
+
+                <div class="col-auto">
+                    <input type="datetime-local"
+                           name="dataInicio"
+                           class="form-control form-control-sm"
+                           th:value="${dataInicio != null ? #temporals.format(dataInicio, 'yyyy-MM-dd''T''HH:mm') : ''}">
+                </div>
+
+                <div class="col-auto">
+                    <input type="datetime-local"
+                           name="dataFim"
+                           class="form-control form-control-sm"
+                           th:value="${dataFim != null ? #temporals.format(dataFim, 'yyyy-MM-dd''T''HH:mm') : ''}">
+                </div>
+
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                        Filtrar
+                    </button>
+
+                    <a href="/dashboard" class="btn btn-sm btn-outline-secondary">
+                        Limpar
+                    </a>
+                </div>
+
+            </form>
+
+        </div>
+
+        <div class="col-md-4 text-end">
+            <span th:if="${totalAlertas > 0}" class="badge bg-danger fs-6">
+                <span th:text="${totalAlertas}">0</span> alertas nao lidos
+            </span>
+        </div>
+
+    </div>
+
+</div>
+<div class="row mb-4">
+
+    <div class="col-md-2">
+        <div class="card card-status text-white bg-danger text-center py-3">
+            <h3 th:text="${#lists.size(abertos)}">0</h3>
+            <small>Abertos</small>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card card-status text-white bg-warning text-center py-3">
+            <h3 th:text="${#lists.size(emAndamento)}">0</h3>
+            <small>Em Andamento</small>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card card-status text-white bg-info text-center py-3">
+            <h3 th:text="${#lists.size(pausados)}">0</h3>
+            <small>Pausados</small>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card card-status text-white bg-purple text-center py-3"
+             style="background-color: #6f42c1;">
+            <h3 th:text="${#lists.size(escalados)}">0</h3>
+            <small>Escalados</small>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card card-status text-white bg-success text-center py-3">
+            <h3 th:text="${#lists.size(concluidos)}">0</h3>
+            <small>Concluídos</small>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card card-status text-white bg-secondary text-center py-3">
+            <h3 th:text="${#numbers.formatDecimal(tempoMedioReparo, 1, 1)}">0</h3>
+            <small>Tempo Médio (min)</small>
+        </div>
+    </div>
+
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+        <strong>🔧 Reparos em Andamento</strong>
+    </div>
+
+    <div class="card-body">
+        <table class="table table-sm"
+               th:if="${not #lists.isEmpty(emAndamento)}">
+
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Título</th>
+                    <th>Máquina</th>
+                    <th>Técnico</th>
+                    <th>Motivo</th>
+                    <th>Tempo Reparo</th>
+                    <th>Alerta</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr th:each="c : ${emAndamento}">
+                    <td th:text="${c.id}">1</td>
+                    <td th:text="${c.titulo}">Título</td>
+                    <td th:text="${c.maquina.nome}">Máq</td>
+                    <td th:text="${c.tecnico.nome}">Tec</td>
+
+                    <td>
+                        <span th:text="${c.motivoFalha}"
+                              class="badge bg-secondary"></span>
+                    </td>
+
+                    <td>
+                        <span class="cronometro"
+                              th:attr="data-inicio-reparo=${c.inicioReparo},
+                                       data-acumulado=${c.tempoReparoAcumulado}">
+                            --:--
+                        </span>
+                    </td>
+
+                    <td>
+                        <span th:if="${c.tempoReparoSegundos > 1800}"
+                              class="badge bg-danger">
+                            ⚠ +30min
+                        </span>
+                    </td>
+
+                    <td>
+                        <a th:href="@{/chamados/{id}(id=${c.id})}"
+                           class="btn btn-sm btn-outline-primary">
+                            Ver
+                        </a>
+                    </td>
+                </tr>
+            </tbody>
+
+        </table>
+
+        <p th:if="${#lists.isEmpty(emAndamento)}"
+           class="text-muted">
+            Nenhum reparo em andamento.
+        </p>
+    </div>
+</div>
+
+<script>
+    function formatarHMS(totalSec) {
+        var h = Math.floor(totalSec / 3600);
+        var m = Math.floor((totalSec % 3600) / 60);
+        var s = totalSec % 60;
+        return String(h).padStart(2, '0') + ':' +
+               String(m).padStart(2, '0') + ':' +
+               String(s).padStart(2, '0');
+    }
+
+    function atualizarCronometro(el) {
+        var inicio = el.getAttribute('data-inicio-reparo');
+        var acumulado = parseInt(el.getAttribute('data-acumulado')) || 0;
+
+        if (!inicio || inicio === 'null') {
+            el.textContent = "00:00:00";
+            return;
+        }
+
+        var diffSec = Math.floor((new Date() - new Date(inicio)) / 1000);
+        var totalSec = acumulado + diffSec;
+
+        el.textContent = formatarHMS(totalSec);
+        el.classList.toggle('atrasado', totalSec > 1800);
+    }
+
+    document.querySelectorAll('.cronometro').forEach(function (el) {
+        atualizarCronometro(el);
+
+        setInterval(function () {
+            atualizarCronometro(el);
+        }, 1000);
+    });
+</script>
+<div class="card mb-4" th:if="${not #lists.isEmpty(escalados)}">
+    <div class="card-header text-white" style="background-color: #6f42c1;">
+        <strong>Chamados Escalados para Especialista</strong>
+    </div>
+
+    <div class="card-body">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Título</th>
+                    <th>Máquina</th>
+                    <th>Especialista</th>
+                    <th>Escalado em</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr th:each="c : ${escalados}">
+                    <td th:text="${c.id}">1</td>
+                    <td th:text="${c.titulo}">Título</td>
+                    <td th:text="${c.maquina.nome}">Máq</td>
+                    <td th:text="${c.especialista?.nome ?: '--'}">Esp</td>
+                    <td th:text="${#temporals.format(c.dataEscalacao, 'dd/MM/yyyy HH:mm')}">data</td>
+                    <td>
+                        <a th:href="@{/chamados/{id}(id=${c.id})}"
+                           class="btn btn-sm btn-outline-primary">
+                            Ver
+                        </a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="row mb-4">
+
+    <div class="col-md-6">
+        <div class="card card-status">
+
+            <div class="card-header bg-primary text-white">
+                <strong>📈 MTBF por Setor (horas)</strong>
+            </div>
+
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Setor</th>
+                            <th>MTBF (h)</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr th:each="entry : ${mtbfPorSetor}">
+                            <td th:text="${entry.key}">Setor</td>
+                            <td th:text="${#numbers.formatDecimal(entry.value, 1, 1)}">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card card-status">
+
+            <div class="card-header bg-success text-white">
+                <strong>💻 MTBF por Máquina (horas)</strong>
+            </div>
+
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Máquina</th>
+                            <th>MTBF (h)</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr th:each="entry : ${mtbfPorMaquina}">
+                            <td th:text="${entry.key}">Maquina</td>
+                            <td th:text="${#numbers.formatDecimal(entry.value, 1, 1)}">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+<div class="card card-status">
+
+    <div class="card-header bg-danger text-white">
+        <strong>Chamados Aguardando Tecnico</strong>
+    </div>
+
+    <div class="card-body">
+
+        <table class="table table-sm" th:if="${not #lists.isEmpty(abertos)}">
+
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Titulo</th>
+                    <th>Maquina</th>
+                    <th>Motivo</th>
+                    <th>Aberto em</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr th:each="c : ${abertos}">
+                    <td th:text="${c.id}">1</td>
+                    <td th:text="${c.titulo}">Titulo</td>
+                    <td th:text="${c.maquina.nome}">Maq</td>
+
+                    <td>
+                        <span th:text="${c.motivoFalha}"
+                              class="badge bg-secondary"></span>
+                    </td>
+
+                    <td th:text="${#temporals.format(c.dataAbertura, 'dd/MM/yyyy HH:mm')}">
+                        data
+                    </td>
+
+                    <td>
+                        <a th:href="@{/chamados/{id}(id=${c.id})}"
+                           class="btn btn-sm btn-outline-danger">
+                            Atender
+                        </a>
+                    </td>
+                </tr>
+            </tbody>
+
+        </table>
+
+        <p th:if="${#lists.isEmpty(abertos)}" class="text-muted">
+            Nenhum chamado pendente.
+        </p>
+
+    </div>
+
+</div>
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"
+      th:replace="~{layout :: html(content=~{::content}, titulo='Abrir Chamado')}">
+
+<body>
+
+<div th:fragment="content">
+
+    <h2 class="mb-4">Abrir Chamado</h2>
+
+    <form method="post"
+          th:action="@{/chamados/novo}"
+          enctype="multipart/form-data"
+          class="card card-status p-4">
+
+        <div class="mb-3">
+            <label class="form-label">Título *</label>
+            <input type="text"
+                   name="titulo"
+                   class="form-control"
+                   required
+                   maxlength="200"
+                   placeholder="Ex: Motor parou na injetora 3">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Descrição</label>
+            <textarea name="descricao"
+                      class="form-control"
+                      rows="3"
+                      maxlength="1000"
+                      placeholder="Descreva o problema..."></textarea>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Motivo da Falha</label>
+
+                <select name="motivoFalha" class="form-select">
+                    <option value="">Selecione...</option>
+
+                    <option th:each="m : ${motivosFalha}"
+                            th:value="${m.name}"
+                            th:text="${m.name}">
+                        Motivo
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Máquina *</label>
+
+                <select name="maquinaId" class="form-select" required>
+                    <option value="">Selecione...</option>
+
+                    <option th:each="m : ${maquinas}"
+                            th:value="${m.id}"
+                            th:text="${m.nome + ' (Setor: ' + m.setor.nome + ')'}">
+                        Máquina
+                    </option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Foto (opcional)</label>
+
+            <input type="file"
+                   name="foto"
+                   class="form-control"
+                   accept="image/*">
+
+            <small class="text-muted">
+                Anexe uma foto do problema para ajudar o técnico.
+            </small>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger">
+                Abrir Chamado
+            </button>
+
+            <a href="/dashboard" class="btn btn-secondary">
+                Cancelar
+            </a>
+        </div>
+
+    </form>
+
+</div>
+
+</body>
+</html>
